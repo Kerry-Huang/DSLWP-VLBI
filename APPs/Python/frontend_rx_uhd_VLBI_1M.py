@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 ##################################################
 # GNU Radio Python Flow Graph
-# Title: Frontend TRX NODE1 UHD
-# Generated: Wed Jan 17 00:26:09 2018
+# Title: Frontend RX UHD
+# Author: WEI Mingchuan, BG2BHC
+# Description: LilacSat-2 receiver frontend for USRP. Tested on GRC 3.7.8.
+# Generated: Sat Feb 10 11:32:46 2018
 ##################################################
 
 if __name__ == '__main__':
@@ -35,12 +37,12 @@ import time
 from gnuradio import qtgui
 
 
-class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
+class frontend_rx_uhd_VLBI_Ver(gr.top_block, Qt.QWidget):
 
     def __init__(self):
-        gr.top_block.__init__(self, "Frontend TRX NODE1 UHD")
+        gr.top_block.__init__(self, "Frontend RX UHD")
         Qt.QWidget.__init__(self)
-        self.setWindowTitle("Frontend TRX NODE1 UHD")
+        self.setWindowTitle("Frontend RX UHD")
         qtgui.util.check_set_qss()
         try:
             self.setWindowIcon(Qt.QIcon.fromTheme('gnuradio-grc'))
@@ -58,17 +60,14 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         self.top_grid_layout = Qt.QGridLayout()
         self.top_layout.addLayout(self.top_grid_layout)
 
-        self.settings = Qt.QSettings("GNU Radio", "frontend_trx_node1_uhd")
+        self.settings = Qt.QSettings("GNU Radio", "frontend_rx_uhd_VLBI_Ver")
         self.restoreGeometry(self.settings.value("geometry").toByteArray())
 
         ##################################################
         # Variables
         ##################################################
-        self.tx_gain = tx_gain = 33.5
-        self.samp_rate = samp_rate = 250000
-        self.rx_gain = rx_gain = 30
-        self.fc = fc = 436.075e6
-        self.audio_rate = audio_rate = 48000
+        self.samp_rate = samp_rate = 1000000
+        self.rx_gain = rx_gain = 35
 
         ##################################################
         # Blocks
@@ -84,8 +83,13 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         self.tab_grid_layout_1 = Qt.QGridLayout()
         self.tab_layout_1.addLayout(self.tab_grid_layout_1)
         self.tab.addTab(self.tab_widget_1, 'Spectrum')
+        self.tab_widget_2 = Qt.QWidget()
+        self.tab_layout_2 = Qt.QBoxLayout(Qt.QBoxLayout.TopToBottom, self.tab_widget_2)
+        self.tab_grid_layout_2 = Qt.QGridLayout()
+        self.tab_layout_2.addLayout(self.tab_grid_layout_2)
+        self.tab.addTab(self.tab_widget_2, 'Scope')
         self.top_grid_layout.addWidget(self.tab, 3,0)
-        self._rx_gain_range = Range(0, 73, 1, 30, 200)
+        self._rx_gain_range = Range(0, 73, 1, 35, 200)
         self._rx_gain_win = RangeWidget(self._rx_gain_range, self.set_rx_gain, 'RX Gain', "counter_slider", float)
         self.top_grid_layout.addWidget(self._rx_gain_win, 0,0)
         self.uhd_usrp_source_0 = uhd.usrp_source(
@@ -95,10 +99,9 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         		channels=range(1),
         	),
         )
-        self.uhd_usrp_source_0.set_subdev_spec('A:B', 0)
         self.uhd_usrp_source_0.set_samp_rate(samp_rate)
 
-        # GPSDO-USRP Sync
+         # GPSDO-USRP Sync
         ##################################################
         INFO = "[\033[32mINFO\033[0m]"
         ERROR = "[\033[31mERROR\033[0m]"
@@ -128,8 +131,10 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         #Check GPS status
         if (self.uhd_usrp_source_0.get_mboard_sensor("gps_locked",0).value == "true"):
             print INFO,"GPS Locked."
-        else:
-            print WARNING,"GPS Unlocked."
+		else:
+            print ERROR,"GPS Unlocked."
+            if not GPS_debug :
+                exit()
 
         #Print GPS info
         print INFO,"GPS INFO"
@@ -161,13 +166,9 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         else:
             print ERROR,"Failed to synchronize USRP time to GPS time."
         ##################################################
-
-        self.uhd_usrp_source_0.set_center_freq(fc, 0)
+        
+        self.uhd_usrp_source_0.set_center_freq(437.275e6, 0)
         self.uhd_usrp_source_0.set_gain(rx_gain, 0)
-        self.uhd_usrp_source_0.set_antenna('RX2', 0)
-        self._tx_gain_range = Range(0, 89, 1, 33.5, 200)
-        self._tx_gain_win = RangeWidget(self._tx_gain_range, self.set_tx_gain, 'TX Gain', "counter_slider", float)
-        self.top_grid_layout.addWidget(self._tx_gain_win, 1,0)
         self.rational_resampler_xxx_0_0 = filter.rational_resampler_ccc(
                 interpolation=24,
                 decimation=125,
@@ -183,7 +184,7 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         self.qtgui_waterfall_sink_x_0 = qtgui.waterfall_sink_c(
         	1024, #size
         	firdes.WIN_BLACKMAN_hARRIS, #wintype
-        	fc, #fc
+        	437.275e6, #fc
         	samp_rate, #bw
         	"", #name
                 1 #number of inputs
@@ -212,14 +213,64 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
             self.qtgui_waterfall_sink_x_0.set_color_map(i, colors[i])
             self.qtgui_waterfall_sink_x_0.set_line_alpha(i, alphas[i])
 
-        self.qtgui_waterfall_sink_x_0.set_intensity_range(-100, 0)
+        self.qtgui_waterfall_sink_x_0.set_intensity_range(-120, -20)
 
         self._qtgui_waterfall_sink_x_0_win = sip.wrapinstance(self.qtgui_waterfall_sink_x_0.pyqwidget(), Qt.QWidget)
         self.tab_layout_0.addWidget(self._qtgui_waterfall_sink_x_0_win)
+        self.qtgui_time_sink_x_0 = qtgui.time_sink_c(
+        	1024, #size
+        	samp_rate, #samp_rate
+        	"", #name
+        	1 #number of inputs
+        )
+        self.qtgui_time_sink_x_0.set_update_time(0.10)
+        self.qtgui_time_sink_x_0.set_y_axis(-1, 1)
+
+        self.qtgui_time_sink_x_0.set_y_label('Amplitude', "")
+
+        self.qtgui_time_sink_x_0.enable_tags(-1, True)
+        self.qtgui_time_sink_x_0.set_trigger_mode(qtgui.TRIG_MODE_FREE, qtgui.TRIG_SLOPE_POS, 0.0, 0, 0, "")
+        self.qtgui_time_sink_x_0.enable_autoscale(True)
+        self.qtgui_time_sink_x_0.enable_grid(False)
+        self.qtgui_time_sink_x_0.enable_axis_labels(True)
+        self.qtgui_time_sink_x_0.enable_control_panel(False)
+
+        if not True:
+          self.qtgui_time_sink_x_0.disable_legend()
+
+        labels = ['', '', '', '', '',
+                  '', '', '', '', '']
+        widths = [1, 1, 1, 1, 1,
+                  1, 1, 1, 1, 1]
+        colors = ["blue", "red", "green", "black", "cyan",
+                  "magenta", "yellow", "dark red", "dark green", "blue"]
+        styles = [1, 1, 1, 1, 1,
+                  1, 1, 1, 1, 1]
+        markers = [-1, -1, -1, -1, -1,
+                   -1, -1, -1, -1, -1]
+        alphas = [1.0, 1.0, 1.0, 1.0, 1.0,
+                  1.0, 1.0, 1.0, 1.0, 1.0]
+
+        for i in xrange(2):
+            if len(labels[i]) == 0:
+                if(i % 2 == 0):
+                    self.qtgui_time_sink_x_0.set_line_label(i, "Re{{Data {0}}}".format(i/2))
+                else:
+                    self.qtgui_time_sink_x_0.set_line_label(i, "Im{{Data {0}}}".format(i/2))
+            else:
+                self.qtgui_time_sink_x_0.set_line_label(i, labels[i])
+            self.qtgui_time_sink_x_0.set_line_width(i, widths[i])
+            self.qtgui_time_sink_x_0.set_line_color(i, colors[i])
+            self.qtgui_time_sink_x_0.set_line_style(i, styles[i])
+            self.qtgui_time_sink_x_0.set_line_marker(i, markers[i])
+            self.qtgui_time_sink_x_0.set_line_alpha(i, alphas[i])
+
+        self._qtgui_time_sink_x_0_win = sip.wrapinstance(self.qtgui_time_sink_x_0.pyqwidget(), Qt.QWidget)
+        self.tab_layout_2.addWidget(self._qtgui_time_sink_x_0_win)
         self.qtgui_freq_sink_x_0 = qtgui.freq_sink_c(
-        	4096, #size
+        	1024, #size
         	firdes.WIN_BLACKMAN_hARRIS, #wintype
-        	fc, #fc
+        	437.275e6, #fc
         	samp_rate, #bw
         	"", #name
         	1 #number of inputs
@@ -265,10 +316,10 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         self.blocks_udp_sink_0 = blocks.udp_sink(gr.sizeof_gr_complex*1, '127.0.0.1', 7200, 1472, True)
         self.blocks_multiply_xx_0_0 = blocks.multiply_vcc(1)
         self.blocks_multiply_xx_0 = blocks.multiply_vcc(1)
-        self.blocks_file_meta_sink_0 = blocks.file_meta_sink(gr.sizeof_gr_complex*1, './DSLWP_frontend.out', samp_rate, 1, blocks.GR_FILE_FLOAT, True, 1000000, "", False)
+        self.blocks_file_meta_sink_0 = blocks.file_meta_sink(gr.sizeof_gr_complex*1, './Data/meta.raw', samp_rate, 1, blocks.GR_FILE_FLOAT, True, 1000000, "", False)
         self.blocks_file_meta_sink_0.set_unbuffered(False)
         self.analog_sig_source_x_0_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, 50e3, 1, 0)
-        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, 74.26e3, 1, 0)
+        self.analog_sig_source_x_0 = analog.sig_source_c(samp_rate, analog.GR_COS_WAVE, 75e3, 1, 0)
 
         ##################################################
         # Connections
@@ -285,18 +336,13 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         self.connect((self.uhd_usrp_source_0, 0), (self.blocks_multiply_xx_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.blocks_multiply_xx_0_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_freq_sink_x_0, 0))
+        self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_time_sink_x_0, 0))
         self.connect((self.uhd_usrp_source_0, 0), (self.qtgui_waterfall_sink_x_0, 0))
 
     def closeEvent(self, event):
-        self.settings = Qt.QSettings("GNU Radio", "frontend_trx_node1_uhd")
+        self.settings = Qt.QSettings("GNU Radio", "frontend_rx_uhd_VLBI_Ver")
         self.settings.setValue("geometry", self.saveGeometry())
         event.accept()
-
-    def get_tx_gain(self):
-        return self.tx_gain
-
-    def set_tx_gain(self, tx_gain):
-        self.tx_gain = tx_gain
 
     def get_samp_rate(self):
         return self.samp_rate
@@ -304,8 +350,9 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
     def set_samp_rate(self, samp_rate):
         self.samp_rate = samp_rate
         self.uhd_usrp_source_0.set_samp_rate(self.samp_rate)
-        self.qtgui_waterfall_sink_x_0.set_frequency_range(self.fc, self.samp_rate)
-        self.qtgui_freq_sink_x_0.set_frequency_range(self.fc, self.samp_rate)
+        self.qtgui_waterfall_sink_x_0.set_frequency_range(437.275e6, self.samp_rate)
+        self.qtgui_time_sink_x_0.set_samp_rate(self.samp_rate)
+        self.qtgui_freq_sink_x_0.set_frequency_range(437.275e6, self.samp_rate)
         self.analog_sig_source_x_0_0.set_sampling_freq(self.samp_rate)
         self.analog_sig_source_x_0.set_sampling_freq(self.samp_rate)
 
@@ -317,23 +364,8 @@ class frontend_trx_node1_uhd(gr.top_block, Qt.QWidget):
         self.uhd_usrp_source_0.set_gain(self.rx_gain, 0)
 
 
-    def get_fc(self):
-        return self.fc
 
-    def set_fc(self, fc):
-        self.fc = fc
-        self.uhd_usrp_source_0.set_center_freq(self.fc, 0)
-        self.qtgui_waterfall_sink_x_0.set_frequency_range(self.fc, self.samp_rate)
-        self.qtgui_freq_sink_x_0.set_frequency_range(self.fc, self.samp_rate)
-
-    def get_audio_rate(self):
-        return self.audio_rate
-
-    def set_audio_rate(self, audio_rate):
-        self.audio_rate = audio_rate
-
-
-def main(top_block_cls=frontend_trx_node1_uhd, options=None):
+def main(top_block_cls=frontend_rx_uhd_VLBI_Ver, options=None):
 
     from distutils.version import StrictVersion
     if StrictVersion(Qt.qVersion()) >= StrictVersion("4.5.0"):
