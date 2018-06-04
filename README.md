@@ -19,4 +19,4 @@ Run
 ----------
 (1) cd DSLWP-VLBI  
 (2) sudo python frontend_dslwp_rx_uhd_gpsdo.py  
-(2) python index_frame.py or python index_packet.py  
+(3) python index_frame.py or python index_packet.py  
